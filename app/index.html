@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#11101c">
+  <title>Neon Hours — Cover Studio</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Neon Hours Cover Studio">
+      <span class="brand-mark">NH</span>
+      <span>NEON HOURS <small>COVER STUDIO</small></span>
+    </a>
+    <div class="top-note"><span class="live-dot"></span> YOUR PHOTOS STAY ON YOUR DEVICE</div>
+    <div class="top-tag">VICE CITY · 1986</div>
+  </header>
+  <main class="workspace">
+    <aside class="editor">
+      <div class="intro">
+        <div class="eyebrow">MAKE YOUR NIGHT ICONIC <span>01 — 03</span></div>
+        <h1>Build your<br><em>own legend.</em></h1>
+        <p>Turn your camera roll into a neon-soaked movie poster.</p>
+      </div>
+
+      <section class="tool-section photos-section">
+        <div class="section-heading"><span class="step">01</span><div><h2>Your cast</h2><p>Choose photos for each frame</p></div></div>
+        <label class="upload-button" for="photos">
+          <span class="upload-icon">＋</span>
+          <span><strong>Add your photos</strong><small>JPG, PNG or WebP · kept private</small></span>
+          <input id="photos" type="file" accept="image/*" multiple>
+        </label>
+        <div id="photo-list" class="photo-list" aria-live="polite"></div>
+        <div class="panel-assignments">
+          <label>MAIN SCENE<select id="photo-hero" aria-label="Main scene photo"></select></label>
+          <label>FLASHBACK<select id="photo-top" aria-label="Flashback photo"></select></label>
+          <label>AFTER HOURS<select id="photo-bottom" aria-label="After hours photo"></select></label>
+        </div>
+      </section>
+
+      <section class="tool-section crop-section">
+        <div class="section-heading"><span class="step">02</span><div><h2>Frame it</h2><p>Adjust the selected photo</p></div></div>
+        <div class="crop-tabs" role="group" aria-label="Choose a frame to crop">
+          <button type="button" class="crop-tab active" data-panel="hero">MAIN</button>
+          <button type="button" class="crop-tab" data-panel="top">FLASHBACK</button>
+          <button type="button" class="crop-tab" data-panel="bottom">AFTER HOURS</button>
+        </div>
+        <label class="range-label"><span>ZOOM</span><input id="zoom" type="range" min="1" max="2.4" step="0.01" value="1"><output id="zoom-value">1.0×</output></label>
+        <div class="position-label"><span>POSITION</span><div class="position-controls">
+          <label>X <input id="offset-x" type="range" min="-100" max="100" value="0"></label>
+          <label>Y <input id="offset-y" type="range" min="-100" max="100" value="0"></label>
+        </div></div>
+      </section>
+
+      <section class="tool-section type-section">
+        <div class="section-heading"><span class="step">03</span><div><h2>The headline</h2><p>Make it a night to remember</p></div></div>
+        <label class="caption-label" for="caption">POSTER TITLE</label>
+        <input id="caption" type="text" maxlength="34" value="MIDNIGHT IN MIAMI" spellcheck="false">
+        <div class="caption-presets">
+          <button type="button" data-caption="AFTER THE LAST CALL">AFTER THE LAST CALL</button>
+          <button type="button" data-caption="NEVER LOOK BACK">NEVER LOOK BACK</button>
+        </div>
+      </section>
+
+      <section class="export-section">
+        <div class="section-heading"><span class="step">04</span><div><h2>Take it with you</h2><p>Export a crisp, share-ready PNG</p></div></div>
+        <div class="export-row">
+          <label class="size-select-label" for="size">POST SIZE<select id="size">
+            <option value="1080x1080">Square · 1080 × 1080</option>
+            <option value="1080x1350">Portrait · 1080 × 1350</option>
+            <option value="1920x1080">Landscape · 1920 × 1080</option>
+          </select></label>
+          <button id="export" type="button"><span>↓</span> EXPORT PNG</button>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </section>
+    </aside>
+
+    <section class="preview-area" aria-label="Live poster preview">
+      <div class="preview-topline"><span>LIVE PREVIEW</span><span class="preview-hint">DRAG THE SLIDERS TO REFRAME</span></div>
+      <div class="poster-wrap">
+        <canvas id="cover" width="1080" height="1080" aria-label="Your poster preview"></canvas>
+      </div>
+      <div class="preview-footer"><span><i></i> ORIGINAL ARTWORK · MADE BY YOU</span><span id="preview-dimensions">1080 × 1080 PX</span></div>
+    </section>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
