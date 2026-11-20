@@ -1,5 +1,20 @@
 [
-  {"name":"1-neon-hours-cover.jpg","query":"?shot=cover&photo=boulevard&caption=Midnight%20Heat","w":1080,"h":1080},
-  {"name":"2-neon-hours-editor.jpg","query":"?shot=editor&photo=boulevard&caption=After%20the%20Last%20Call","w":1280,"h":800},
-  {"name":"3-neon-hours-wide.jpg","query":"?shot=cover&photo=pier&caption=Never%20Look%20Back","w":1280,"h":720}
+  {
+    "name": "1-neon-hours-cover.jpg",
+    "query": "?shot=cover&photo=boulevard&caption=Midnight%20Heat",
+    "width": 1080,
+    "height": 1080
+  },
+  {
+    "name": "2-neon-hours-editor.jpg",
+    "query": "?shot=editor&photo=boulevard&caption=After%20the%20Last%20Call",
+    "width": 1280,
+    "height": 800
+  },
+  {
+    "name": "3-neon-hours-wide.jpg",
+    "query": "?shot=cover&photo=pier&caption=Never%20Look%20Back",
+    "width": 1280,
+    "height": 720
+  }
 ]

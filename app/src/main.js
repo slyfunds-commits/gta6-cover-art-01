@@ -1,158 +1,191 @@
-import { drawCover } from './cover.js';
-import { runShot } from './shots.js';
+import { drawCover } from "./cover.js";
+import { announceReady, applyShotMode } from "./shots.js";
 
-const canvas=document.getElementById('cover');
-const caption=document.getElementById('caption');
-const status=document.getElementById('status');
-const panelNames=['main','mid','close'];
-const sizes={'1080x1080':[1080,1080],'1080x1350':[1080,1350],'1920x1080':[1920,1080]};
-const photos=new Map();
-const selected={main:null,mid:null,close:null};
-const crops={
-  main:{zoom:1,x:0,y:0},
-  mid:{zoom:1,x:0,y:0},
-  close:{zoom:1,x:0,y:0},
+const canvas = document.querySelector("#poster");
+const contextControls = {
+  files: document.querySelector("#photo-files"),
+  chips: document.querySelector("#photo-chips"),
+  headline: document.querySelector("#headline"),
+  format: document.querySelector("#format"),
+  size: document.querySelector("#canvas-size"),
+  zoom: document.querySelector("#zoom"),
+  zoomValue: document.querySelector("#zoom-value"),
+  panX: document.querySelector("#pan-x"),
+  panY: document.querySelector("#pan-y"),
+  status: document.querySelector("#export-status"),
 };
-let active='main';
-let photoNumber=0;
+const formats = {
+  square: [1080, 1080],
+  portrait: [1080, 1350],
+  wide: [1920, 1080],
+};
+const sceneSelects = {
+  main: document.querySelector("#photo-main"),
+  mid: document.querySelector("#photo-mid"),
+  close: document.querySelector("#photo-close"),
+};
+const scenes = [];
+const crops = {
+  main: { zoom: 1, x: 0, y: 0 },
+  mid: { zoom: 1, x: 0, y: 0 },
+  close: { zoom: 1, x: 0, y: 0 },
+};
+let activePanel = "main";
 
-function redraw() {
-  drawCover(canvas,Object.fromEntries(panelNames.map(name=>[name,photos.get(selected[name])?.image??null])),caption.value,crops);
-}
-function readImage(url) {
-  return new Promise((resolve,reject)=>{
-    const image=new Image();
-    image.onload=()=>resolve(image);
-    image.onerror=()=>reject(new Error('This image could not be opened.'));
-    image.src=url;
+function renderChips() {
+  contextControls.chips.replaceChildren();
+  scenes.forEach((scene, index) => {
+    const chip = document.createElement("span");
+    chip.className = "photo-chip";
+    chip.textContent = scene.name;
+    chip.title = `Photo ${index + 1}: ${scene.name}`;
+    contextControls.chips.append(chip);
   });
 }
-async function addPhoto(url,name,file=null) {
-  const image=await readImage(url);
-  const id=`photo-${++photoNumber}`;
-  photos.set(id,{image,name,file,url});
-  return id;
-}
-function shortName(name) { return name.length>18?name.slice(0,15)+'…':name; }
-function refreshControls() {
-  const list=document.getElementById('photo-list');
-  list.replaceChildren();
-  for(const [,photo] of photos) {
-    const chip=document.createElement('span');
-    chip.className='photo-chip';
-    chip.textContent=shortName(photo.name);
-    chip.title=photo.name;
-    list.append(chip);
-  }
-  for(const name of panelNames) {
-    const select=document.getElementById(`photo-${name}`);
-    const previous=selected[name];
+
+function refreshSceneSelectors() {
+  Object.entries(sceneSelects).forEach(([panel, select]) => {
+    const previous = select.value;
     select.replaceChildren();
-    for(const [id,photo] of photos) {
-      const option=document.createElement('option');
-      option.value=id;
-      option.textContent=shortName(photo.name);
+    scenes.forEach((scene, index) => {
+      const option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = scene.name;
       select.append(option);
+    });
+    if (scenes.length) {
+      const fallback = panel === "main" ? 0 : Math.min(1, scenes.length - 1);
+      select.value = scenes.some((_, index) => String(index) === previous) ? previous : String(fallback);
     }
-    if(photos.has(previous)) select.value=previous;
-    else if(photos.size) { selected[name]=photos.keys().next().value; select.value=selected[name]; }
-  }
-}
-function setActive(name) {
-  active=name;
-  document.querySelectorAll('.crop-tab').forEach(button=>button.classList.toggle('active',button.dataset.panel===name));
-  const crop=crops[name];
-  document.getElementById('zoom').value=crop.zoom;
-  document.getElementById('zoom-value').value=`${crop.zoom.toFixed(1)}×`;
-  document.getElementById('offset-x').value=crop.x;
-  document.getElementById('offset-y').value=crop.y;
-}
-
-document.getElementById('photos').addEventListener('change',async event=>{
-  const files=[...event.target.files].filter(file=>file.type.startsWith('image/'));
-  if(!files.length) return;
-  status.textContent=`Loading ${files.length} local photo${files.length===1?'':'s'}…`;
-  try {
-    const ids=await Promise.all(files.map(file=>addPhoto(URL.createObjectURL(file),file.name,file)));
-    refreshControls();
-    panelNames.forEach(name=>{selected[name]=ids[0];});
-    refreshControls();
-    redraw();
-    status.textContent=`${files.length} photo${files.length===1?'':'s'} ready · stays on this device`;
-  } catch(error) { status.textContent=error.message; }
-  event.target.value='';
-});
-for(const name of panelNames) {
-  document.getElementById(`photo-${name}`).addEventListener('change',event=>{
-    selected[name]=event.target.value;
-    redraw();
   });
 }
-document.querySelectorAll('.crop-tab').forEach(button=>{
-  button.addEventListener('click',()=>setActive(button.dataset.panel));
-});
-document.getElementById('zoom').addEventListener('input',event=>{
-  crops[active].zoom=Number(event.target.value);
-  document.getElementById('zoom-value').value=`${crops[active].zoom.toFixed(1)}×`;
-  redraw();
-});
-document.getElementById('offset-x').addEventListener('input',event=>{crops[active].x=Number(event.target.value);redraw();});
-document.getElementById('offset-y').addEventListener('input',event=>{crops[active].y=Number(event.target.value);redraw();});
-caption.addEventListener('input',redraw);
-document.querySelectorAll('[data-caption]').forEach(button=>{
-  button.addEventListener('click',()=>{
-    caption.value=button.dataset.caption;
-    redraw();
+
+function repaint() {
+  const [width, height] = formats[contextControls.format.value];
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  contextControls.size.value = `${width} × ${height}`;
+  const images = Object.fromEntries(Object.entries(sceneSelects).map(([panel, select]) => {
+    return [panel, scenes[Number(select.value)]?.image ?? null];
+  }));
+  drawCover(canvas, images, contextControls.headline.value, crops);
+}
+
+function addLocalPhoto(file, url = URL.createObjectURL(file)) {
+  const image = new Image();
+  image.onload = () => {
+    scenes.push({ name: file.name, image, url });
+    renderChips();
+    refreshSceneSelectors();
+    repaint();
+  };
+  image.onerror = () => {
+    URL.revokeObjectURL(url);
+    contextControls.status.textContent = `Could not read ${file.name}. Choose a different image.`;
+  };
+  image.src = url;
+}
+
+function loadBundledPhoto(name) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      scenes.push({ name, image, url: image.src });
+      renderChips();
+      refreshSceneSelectors();
+      repaint();
+      resolve();
+    };
+    image.onerror = () => {
+      contextControls.status.textContent = `Bundled sample ${name} could not be loaded.`;
+      resolve();
+    };
+    image.src = `./samples/${name}`;
   });
-});
-document.getElementById('size').addEventListener('change',event=>{
-  const [w,h]=sizes[event.target.value];
-  canvas.width=w;canvas.height=h;
-  document.getElementById('preview-size').textContent=`${w} × ${h} PX`;
-  redraw();
-});
-document.getElementById('export').addEventListener('click',()=>{
-  canvas.toBlob(blob=>{
-    if(!blob){status.textContent='PNG export failed. Please try again.';return;}
-    const url=URL.createObjectURL(blob);
-    const anchor=document.createElement('a');
-    anchor.href=url;
-    anchor.download=`neon-hours-${canvas.width}x${canvas.height}.png`;
-    anchor.click();
-    setTimeout(()=>URL.revokeObjectURL(url),1000);
-    status.textContent=`Saved neon-hours-${canvas.width}x${canvas.height}.png`;
-  },'image/png');
+}
+
+contextControls.files.addEventListener("change", (event) => {
+  for (const file of event.target.files) {
+    if (file.type.startsWith("image/")) addLocalPhoto(file);
+  }
+  event.target.value = "";
 });
 
-async function initialize() {
-  const query=new URLSearchParams(location.search);
-  const shot=query.get('shot');
-  const photoName=query.get('photo')??'boulevard';
-  const names=shot==='editor'?[photoName,photoName==='pier'?'boulevard':'pier']: [photoName];
-  const ids=[];
-  for(const name of [...new Set(names)]) ids.push(await addPhoto(`samples/${name}.jpg`,name));
-  if(shot==='editor') {
-    selected.main=ids[0];selected.mid=ids[1]??ids[0];selected.close=ids[0];
-  } else if(shot) {
-    panelNames.forEach(name=>selected[name]=ids[0]);
-  } else {
-    const boulevard=ids.find((id,i)=>photos.get(id)?.name==='boulevard');
-    selected.main=boulevard??ids[0];
-    selected.mid=ids[1]??selected.main;
-    selected.close=selected.main;
-  }
-  if(!shot) {
-    for(const name of ['boulevard','pier']) {
-      if(![...photos.values()].some(photo=>photo.name===name)) {
-        await addPhoto(`samples/${name}.jpg`,name);
-      }
+Object.entries(sceneSelects).forEach(([panel, select]) => {
+  select.addEventListener("change", () => {
+    if (panel === activePanel) repaint();
+    else repaint();
+  });
+});
+
+document.querySelectorAll(".panel-tabs button").forEach((button) => {
+  button.addEventListener("click", () => {
+    activePanel = button.dataset.panel;
+    document.querySelector(".panel-tabs .active")?.classList.remove("active");
+    button.classList.add("active");
+    const crop = crops[activePanel];
+    contextControls.zoom.value = String(crop.zoom);
+    contextControls.zoomValue.value = `${crop.zoom.toFixed(2)}×`;
+    contextControls.panX.value = String(crop.x);
+    contextControls.panY.value = String(crop.y);
+  });
+});
+
+contextControls.zoom.addEventListener("input", () => {
+  crops[activePanel].zoom = Number(contextControls.zoom.value);
+  contextControls.zoomValue.value = `${crops[activePanel].zoom.toFixed(2)}×`;
+  repaint();
+});
+contextControls.panX.addEventListener("input", () => {
+  crops[activePanel].x = Number(contextControls.panX.value);
+  repaint();
+});
+contextControls.panY.addEventListener("input", () => {
+  crops[activePanel].y = Number(contextControls.panY.value);
+  repaint();
+});
+
+contextControls.headline.addEventListener("input", repaint);
+contextControls.format.addEventListener("change", repaint);
+document.querySelectorAll("[data-caption]").forEach((button) => {
+  button.addEventListener("click", () => {
+    contextControls.headline.value = button.dataset.caption;
+    repaint();
+  });
+});
+
+document.querySelector("#export").addEventListener("click", () => {
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      contextControls.status.textContent = "PNG export failed. Please try again.";
+      return;
     }
-  }
-  refreshControls();
-  setActive('main');
-  if(shot) caption.value=query.get('caption')??'MIDNIGHT HEAT';
-  redraw();
-  if(shot) await runShot(shot,query,async text=>{caption.value=text;redraw();});
-  else window.__shotReady=true;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `neon-hours-${canvas.width}x${canvas.height}.png`;
+    link.click();
+    URL.revokeObjectURL(url);
+    contextControls.status.textContent = `Exported neon-hours-${canvas.width}x${canvas.height}.png`;
+  }, "image/png");
+});
+
+const query = new URLSearchParams(location.search);
+if (query.has("caption")) contextControls.headline.value = query.get("caption").slice(0, 32);
+applyShotMode(query.get("shot"));
+if (query.get("shot") === "cover") {
+  const aspect = window.innerWidth / window.innerHeight;
+  contextControls.format.value = aspect >= 1.35 ? "wide" : window.innerHeight / window.innerWidth >= 1.2 ? "portrait" : "square";
 }
-initialize().catch(error=>{status.textContent=error.message;console.error(error);});
+repaint();
+const firstSample = query.get("photo") === "pier" ? "pier.jpg" : "boulevard.jpg";
+const secondSample = firstSample === "pier.jpg" ? "boulevard.jpg" : "pier.jpg";
+Promise.all([loadBundledPhoto(firstSample), loadBundledPhoto(secondSample)]).then(() => {
+  sceneSelects.main.value = "0";
+  sceneSelects.mid.value = scenes.length > 1 ? "1" : "0";
+  sceneSelects.close.value = scenes.length > 1 ? "1" : "0";
+  repaint();
+  announceReady();
+});

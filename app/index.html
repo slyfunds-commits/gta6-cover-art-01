@@ -1,89 +1,89 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090817">
-  <title>Neon Hours — Poster Studio</title>
-  <link rel="stylesheet" href="./style.css">
-</head>
-<body>
-  <header class="topbar">
-    <a class="brand" href="#" aria-label="Neon Hours home">
-      <span class="brand-glyph">NH</span>
-      <span><strong>NEON HOURS</strong><small>POSTER STUDIO</small></span>
-    </a>
-    <div class="privacy"><i></i> PRIVATE · ON YOUR DEVICE</div>
-  </header>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#090817">
+    <title>Neon Hours — Poster Studio</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Neon Hours Poster Studio">
+        <span class="brand-mark">NH</span>
+        <span class="brand-type"><strong>NEON HOURS</strong><small>POSTER STUDIO</small></span>
+      </a>
+      <div class="privacy"><i></i> PRIVATE <span>·</span> ON YOUR DEVICE</div>
+    </header>
 
-  <main class="studio">
-    <aside class="controls">
-      <section class="title-block">
-        <p>MAKE THE NIGHT YOURS</p>
-        <h1>Own the<br><em>afterglow.</em></h1>
-      </section>
-
-      <section class="panel-control">
-        <div class="panel-title"><b>01</b><div><h2>Your scenes</h2><span>Add photos, then assign a frame.</span></div></div>
-        <label class="add-photos" for="photos">
-          <span class="plus">＋</span>
-          <span><strong>Choose photos</strong><small>Local images · never uploaded</small></span>
-          <input id="photos" type="file" accept="image/*" multiple>
-        </label>
-        <div id="photo-list" class="photo-list"></div>
-        <div class="assignments">
-          <label>MAIN<select id="photo-main" aria-label="Main photo"></select></label>
-          <label>MID<select id="photo-mid" aria-label="Middle photo"></select></label>
-          <label>CLOSE<select id="photo-close" aria-label="Closing photo"></select></label>
+    <main class="workspace">
+      <aside class="controls">
+        <div class="intro">
+          <p class="eyebrow">MAKE THE NIGHT YOURS</p>
+          <h1>Own the<br><em>afterglow.</em></h1>
+          <p class="intro-copy">Three frames. One night. Your story.</p>
         </div>
-      </section>
 
-      <section class="panel-control">
-        <div class="panel-title"><b>02</b><div><h2>Reframe</h2><span>Zoom and move one panel at a time.</span></div></div>
-        <div class="tabs" role="group" aria-label="Choose panel">
-          <button class="crop-tab active" type="button" data-panel="main">MAIN</button>
-          <button class="crop-tab" type="button" data-panel="mid">MID</button>
-          <button class="crop-tab" type="button" data-panel="close">CLOSE</button>
-        </div>
-        <label class="slider-row"><span>ZOOM</span><input id="zoom" type="range" min="1" max="2.5" step="0.01" value="1"><output id="zoom-value">1.0×</output></label>
-        <div class="offset-grid">
-          <label>X <input id="offset-x" type="range" min="-100" max="100" value="0"></label>
-          <label>Y <input id="offset-y" type="range" min="-100" max="100" value="0"></label>
-        </div>
-      </section>
-
-      <section class="panel-control">
-        <div class="panel-title"><b>03</b><div><h2>Make a statement</h2><span>Keep the headline short and loud.</span></div></div>
-        <input id="caption" class="caption" type="text" maxlength="32" value="MIDNIGHT HEAT" spellcheck="false" aria-label="Poster headline">
-        <div class="caption-presets">
-          <button type="button" data-caption="AFTER THE LAST CALL">AFTER THE LAST CALL</button>
-          <button type="button" data-caption="NEVER LOOK BACK">NEVER LOOK BACK</button>
-        </div>
-      </section>
-
-      <section class="panel-control export-control">
-        <div class="panel-title"><b>04</b><div><h2>Export</h2><span>Download an original high-resolution PNG.</span></div></div>
-        <div class="export-grid">
-          <label>FORMAT
-            <select id="size">
-              <option value="1080x1080">SQUARE · 1080</option>
-              <option value="1080x1350">PORTRAIT · 1080 × 1350</option>
-              <option value="1920x1080">WIDE · 1920 × 1080</option>
-            </select>
+        <section class="control-section">
+          <h2><span>01</span> Your scenes</h2>
+          <label class="dropzone" for="photo-files">
+            <span class="upload-mark" aria-hidden="true">＋</span>
+            <span><strong>Choose photos</strong><small>Local images · never uploaded</small></span>
+            <input id="photo-files" type="file" accept="image/*" multiple>
           </label>
-          <button id="export" type="button"><span>↓</span> EXPORT PNG</button>
-        </div>
-        <p id="status" role="status"></p>
-      </section>
-    </aside>
+          <div id="photo-chips" class="photo-chips" aria-live="polite"></div>
+          <div class="scene-selects">
+            <label>MAIN<select id="photo-main"></select></label>
+            <label>MID<select id="photo-mid"></select></label>
+            <label>CLOSE<select id="photo-close"></select></label>
+          </div>
+        </section>
 
-    <section class="preview" aria-label="Live poster preview">
-      <div class="preview-bar"><span>LIVE POSTER</span><span id="preview-size">1080 × 1080 PX</span></div>
-      <div class="canvas-shell">
-        <canvas id="cover" width="1080" height="1080" aria-label="Poster canvas"></canvas>
-      </div>
-    </section>
-  </main>
-  <script type="module" src="./src/main.js"></script>
-</body>
+        <section class="control-section">
+          <h2><span>02</span> Reframe</h2>
+          <div class="panel-tabs" role="group" aria-label="Panel to reframe">
+            <button type="button" class="active" data-panel="main">MAIN</button>
+            <button type="button" data-panel="mid">MID</button>
+            <button type="button" data-panel="close">CLOSE</button>
+          </div>
+          <label class="range-control"><span>ZOOM <output id="zoom-value">1.00×</output></span>
+            <input id="zoom" type="range" min="1" max="2.5" step="0.01" value="1">
+          </label>
+          <div class="range-pair">
+            <label class="range-control"><span>X OFFSET</span><input id="pan-x" type="range" min="-100" max="100" step="1" value="0"></label>
+            <label class="range-control"><span>Y OFFSET</span><input id="pan-y" type="range" min="-100" max="100" step="1" value="0"></label>
+          </div>
+        </section>
+
+        <section class="control-section statement-section">
+          <h2><span>03</span> Make a statement</h2>
+          <label class="sr-only" for="headline">Poster headline</label>
+          <input id="headline" class="headline-input" type="text" maxlength="32" value="MIDNIGHT HEAT">
+          <div class="presets">
+            <button type="button" data-caption="AFTER THE LAST CALL">AFTER THE LAST CALL</button>
+            <button type="button" data-caption="NEVER LOOK BACK">NEVER LOOK BACK</button>
+          </div>
+        </section>
+
+        <section class="control-section export-section">
+          <h2><span>04</span> Export</h2>
+          <label class="sr-only" for="format">Poster format</label>
+          <select id="format" class="format-select">
+            <option value="square">SQUARE · 1080×1080</option>
+            <option value="portrait">PORTRAIT · 1080×1350</option>
+            <option value="wide">WIDE · 1920×1080</option>
+          </select>
+          <button id="export" class="export-button" type="button">EXPORT PNG <span>↗</span></button>
+          <p id="export-status" class="status" role="status">Your photo stays on this device.</p>
+        </section>
+      </aside>
+
+      <section class="preview" aria-label="Poster preview">
+        <div class="preview-bar"><span><i></i> LIVE POSTER</span><output id="canvas-size">1080 × 1080</output></div>
+        <div class="canvas-frame"><canvas id="poster" width="1080" height="1080" aria-label="Neon Hours poster preview"></canvas></div>
+        <p class="preview-note">A little more night. A lot more you.</p>
+      </section>
+    </main>
+    <script type="module" src="./src/main.js"></script>
+  </body>
 </html>
