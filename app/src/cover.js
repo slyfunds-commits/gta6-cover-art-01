@@ -37,6 +37,7 @@ function drawPhoto(ctx, image, box, crop) {
   ctx.fillStyle = '#fff7ea';
   ctx.font = `900 ${Math.max(11, box.w * .055)}px Arial, sans-serif`;
   ctx.letterSpacing = `${Math.max(1, box.w * .009)}px`;
+  ctx.textAlign = 'left';
   ctx.fillText(NAMES[box.name], box.x + box.w * .06, box.y + box.h * .10);
   ctx.restore();
 }
@@ -148,6 +149,7 @@ export function drawCover(canvas, photos, caption, crops) {
   ctx.fillStyle='#fff3df';
   ctx.font=`900 ${Math.max(12,w*.017)}px Arial,sans-serif`;
   ctx.letterSpacing=`${Math.max(1,w*.002)}px`;
+  ctx.textAlign='left';
   ctx.fillText('NEON HOURS',w*.045,h*.925);
   ctx.textAlign='right';
   ctx.fillStyle='#70dde6';
