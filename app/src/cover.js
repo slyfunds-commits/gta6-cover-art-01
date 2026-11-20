@@ -1,201 +1,164 @@
-const panelLabels = { hero: '01 / MAIN SCENE', top: '02 / FLASHBACK', bottom: '03 / AFTER HOURS' };
+const NAMES = { main: 'MAIN', mid: 'MIDNIGHT', close: 'LAST LIGHT' };
 
-function panelLayout(width, height) {
-  const portrait = height >= width * 1.15;
-  const top = portrait ? 0.045 : 0.055;
-  const photoBottom = portrait ? 0.68 : 0.72;
-  const photoHeight = photoBottom - top;
+function drawPhoto(ctx, image, box, crop) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(box.x, box.y, box.w, box.h);
+  ctx.clip();
+  if (image) {
+    const scale = Math.max(box.w / image.naturalWidth, box.h / image.naturalHeight) * crop.zoom;
+    const dw = image.naturalWidth * scale;
+    const dh = image.naturalHeight * scale;
+    const spareX = dw - box.w;
+    const spareY = dh - box.h;
+    const dx = box.x - spareX / 2 + spareX * crop.x / 200;
+    const dy = box.y - spareY / 2 + spareY * crop.y / 200;
+    ctx.drawImage(image, dx, dy, dw, dh);
+  } else {
+    const g = ctx.createLinearGradient(box.x, box.y, box.x + box.w, box.y + box.h);
+    g.addColorStop(0, '#ff708c');
+    g.addColorStop(.55, '#743873');
+    g.addColorStop(1, '#17255a');
+    ctx.fillStyle = g;
+    ctx.fillRect(box.x, box.y, box.w, box.h);
+  }
+  const shade = ctx.createLinearGradient(box.x, box.y, box.x + box.w * .3, box.y + box.h);
+  shade.addColorStop(0, 'rgba(255,79,150,.28)');
+  shade.addColorStop(.5, 'rgba(70,40,120,.05)');
+  shade.addColorStop(1, 'rgba(8,10,38,.48)');
+  ctx.fillStyle = shade;
+  ctx.fillRect(box.x, box.y, box.w, box.h);
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,244,232,.92)';
+  ctx.lineWidth = Math.max(2, box.w * .008);
+  ctx.strokeRect(box.x + ctx.lineWidth / 2, box.y + ctx.lineWidth / 2, box.w - ctx.lineWidth, box.h - ctx.lineWidth);
+  ctx.fillStyle = '#fff7ea';
+  ctx.font = `900 ${Math.max(11, box.w * .055)}px Arial, sans-serif`;
+  ctx.letterSpacing = `${Math.max(1, box.w * .009)}px`;
+  ctx.fillText(NAMES[box.name], box.x + box.w * .06, box.y + box.h * .10);
+  ctx.restore();
+}
+
+function panelLayout(w, h) {
+  const landscape = w / h >= 1.35;
+  if (landscape) return {
+    main: { name: 'main', x: w*.035, y: h*.055, w:w*.60, h:h*.78 },
+    mid: { name: 'mid', x: w*.655, y: h*.055, w:w*.31, h:h*.37 },
+    close: { name: 'close', x: w*.655, y: h*.445, w:w*.31, h:h*.39 },
+  };
+  if (h/w >= 1.20) return {
+    main: { name: 'main', x:w*.045, y:h*.035, w:w*.91, h:h*.50 },
+    mid: { name: 'mid', x:w*.045, y:h*.555, w:w*.43, h:h*.25 },
+    close: { name: 'close', x:w*.505, y:h*.555, w:w*.45, h:h*.25 },
+  };
   return {
-    hero: { x: 0.045, y: top, w: 0.595, h: photoHeight },
-    top: { x: 0.66, y: top, w: 0.295, h: photoHeight * 0.47 },
-    bottom: { x: 0.66, y: top + photoHeight * 0.515, w: 0.295, h: photoHeight * 0.485 },
+    main: { name:'main', x:w*.04, y:h*.055, w:w*.58, h:h*.62 },
+    mid: { name:'mid', x:w*.64, y:h*.055, w:w*.32, h:h*.29 },
+    close: { name:'close', x:w*.64, y:h*.365, w:w*.32, h:h*.31 },
   };
 }
 
-function paintPanel(ctx, panel, image, crop, width, height, index) {
-  const x = panel.x * width;
-  const y = panel.y * height;
-  const w = panel.w * width;
-  const h = panel.h * height;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x, y, w, h);
-  ctx.clip();
-  if (image) {
-    const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight) * crop.zoom;
-    const drawWidth = image.naturalWidth * scale;
-    const drawHeight = image.naturalHeight * scale;
-    const extraX = drawWidth - w;
-    const extraY = drawHeight - h;
-    const left = x - extraX / 2 + extraX * crop.x / 200;
-    const top = y - extraY / 2 + extraY * crop.y / 200;
-    ctx.drawImage(image, left, top, drawWidth, drawHeight);
-  } else {
-    const fill = ctx.createLinearGradient(x, y, x + w, y + h);
-    fill.addColorStop(0, '#fd6c87');
-    fill.addColorStop(.55, '#78366b');
-    fill.addColorStop(1, '#201b49');
-    ctx.fillStyle = fill;
-    ctx.fillRect(x, y, w, h);
-  }
-  const tint = ctx.createLinearGradient(x, y, x + w * .18, y + h);
-  tint.addColorStop(0, 'rgba(255, 76, 151, .28)');
-  tint.addColorStop(.48, 'rgba(92, 48, 132, .10)');
-  tint.addColorStop(1, 'rgba(15, 11, 42, .42)');
-  ctx.fillStyle = tint;
-  ctx.fillRect(x, y, w, h);
-  ctx.restore();
-
-  ctx.save();
-  ctx.strokeStyle = '#fff0e8';
-  ctx.lineWidth = Math.max(2, width * .0024);
-  ctx.strokeRect(x, y, w, h);
-  ctx.strokeStyle = 'rgba(255, 95, 158, .88)';
-  ctx.lineWidth = Math.max(1, width * .0012);
-  ctx.strokeRect(x + 4, y + 4, w - 8, h - 8);
-  ctx.fillStyle = '#fff2ed';
-  ctx.font = `800 ${Math.max(11, width * .011)}px system-ui, sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.shadowColor = '#1b102c';
-  ctx.shadowBlur = 8;
-  ctx.fillText(panelLabels[index], x + w * .045, y + h * .09);
-  ctx.restore();
-}
-
-function splitTitle(text, ctx, maxWidth) {
-  const words = text.trim().toUpperCase().split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
+function titleLines(text, ctx, maxWidth) {
+  const words = text.toUpperCase().trim().split(/\s+/).filter(Boolean);
   const lines = [];
   let line = '';
   for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (line && ctx.measureText(candidate).width > maxWidth) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = candidate;
-    }
+    const next = line ? line + ' ' + word : word;
+    if (line && ctx.measureText(next).width > maxWidth) { lines.push(line); line = word; }
+    else line = next;
   }
   if (line) lines.push(line);
   return lines.slice(0, 2);
 }
 
-function drawTitle(ctx, text, width, height) {
-  const maxWidth = width * .9;
-  let fontSize = Math.min(width * .102, height * .11);
-  let lines;
-  ctx.font = `1000 italic ${fontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`;
-  lines = splitTitle(text, ctx, maxWidth);
-  if (lines.length > 1) {
-    fontSize = Math.min(width * .078, height * .085);
-    ctx.font = `1000 italic ${fontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`;
-    lines = splitTitle(text, ctx, maxWidth);
-  }
-  while (lines.some(line => ctx.measureText(line).width > maxWidth) && fontSize > 28) {
-    fontSize -= 2;
-    ctx.font = `1000 italic ${fontSize}px system-ui, -apple-system, "Segoe UI", sans-serif`;
-    lines = splitTitle(text, ctx, maxWidth);
-  }
-
-  const centerY = height * .86;
-  const lineHeight = fontSize * 1.02;
-  ctx.save();
+function drawTitle(ctx, text, w, h) {
+  let size = Math.min(w*.105, h*.085);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.font = `900 italic ${size}px Arial, sans-serif`;
+  const maxWidth = w*.92;
+  let lines = titleLines(text, ctx, maxWidth);
+  if (lines.length > 1) size *= .78;
+  ctx.font = `900 italic ${size}px Arial, sans-serif`;
+  while (lines.some(line => ctx.measureText(line).width > maxWidth) && size > 24) {
+    size -= 2;
+    ctx.font = `900 italic ${size}px Arial, sans-serif`;
+  }
+  const y = h*(h/w >= 1.20 ? .895 : .84);
+  const lineHeight = size*.94;
+  ctx.save();
   ctx.lineJoin = 'round';
-  ctx.shadowColor = 'rgba(255, 49, 137, .8)';
-  ctx.shadowBlur = fontSize * .24;
-  for (let i = 0; i < lines.length; i++) {
-    const y = centerY + (i - (lines.length - 1) / 2) * lineHeight;
-    ctx.lineWidth = Math.max(7, fontSize * .13);
-    ctx.strokeStyle = '#21142d';
-    ctx.strokeText(lines[i], width / 2, y, maxWidth);
-    ctx.lineWidth = Math.max(2, fontSize * .038);
-    ctx.strokeStyle = '#fff3e8';
-    ctx.strokeText(lines[i], width / 2, y, maxWidth);
-    ctx.fillStyle = '#fff9f0';
-    ctx.fillText(lines[i], width / 2, y, maxWidth);
-  }
+  ctx.shadowColor = 'rgba(255,55,145,.75)';
+  ctx.shadowBlur = size*.28;
+  lines.forEach((line,i) => {
+    const yy = y + (i-(lines.length-1)/2)*lineHeight;
+    ctx.lineWidth = size*.16;
+    ctx.strokeStyle = '#24142f';
+    ctx.strokeText(line, w/2, yy, maxWidth);
+    ctx.lineWidth = size*.035;
+    ctx.strokeStyle = '#fff0df';
+    ctx.strokeText(line, w/2, yy, maxWidth);
+    ctx.fillStyle = '#fffaf0';
+    ctx.fillText(line, w/2, yy, maxWidth);
+  });
   ctx.restore();
 }
 
-function drawFooterSun(ctx, width, height, top) {
-  const radius = Math.min(width, height) * .34;
-  const centerY = height * .97;
+function drawSun(ctx, w, h) {
+  const y = h*.935;
+  const r = Math.min(w,h)*.26;
   ctx.save();
+  const g = ctx.createLinearGradient(0,y-r,0,y);
+  g.addColorStop(0,'rgba(255,211,119,.86)');
+  g.addColorStop(.55,'rgba(255,110,145,.82)');
+  g.addColorStop(1,'rgba(214,74,154,.68)');
+  ctx.fillStyle=g;
   ctx.beginPath();
-  ctx.rect(0, top, width, height - top);
-  ctx.clip();
-  const gradient = ctx.createLinearGradient(0, centerY - radius, 0, centerY);
-  gradient.addColorStop(0, 'rgba(255, 211, 117, .9)');
-  gradient.addColorStop(.52, 'rgba(255, 111, 130, .84)');
-  gradient.addColorStop(1, 'rgba(226, 73, 147, .72)');
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(width / 2, centerY, radius, Math.PI, 0);
+  ctx.arc(w*.5,y,r,Math.PI,0);
   ctx.fill();
-  ctx.save();
   ctx.beginPath();
-  ctx.arc(width / 2, centerY, radius, Math.PI, 0);
+  ctx.arc(w*.5,y,r,Math.PI,0);
   ctx.clip();
-  ctx.fillStyle = 'rgba(36, 24, 58, .34)';
-  for (let i = 0; i < 5; i++) {
-    ctx.fillRect(0, centerY - radius * .55 + i * height * .018, width, height * .006);
-  }
-  ctx.restore();
+  ctx.fillStyle='rgba(28,20,58,.35)';
+  for(let i=0;i<6;i++) ctx.fillRect(0,y-r*.72+i*h*.024,w,h*.008);
   ctx.restore();
 }
 
-/** Draws the multi-frame, neon-noir poster at the canvas's current export dimensions. */
 export function drawCover(canvas, photos, caption, crops) {
-  const ctx = canvas.getContext('2d');
-  const { width, height } = canvas;
-  const background = ctx.createLinearGradient(0, 0, width * .2, height);
-  background.addColorStop(0, '#351735');
-  background.addColorStop(.44, '#2b214a');
-  background.addColorStop(1, '#101e3d');
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
-
-  const panels = panelLayout(width, height);
-  for (const name of ['hero', 'top', 'bottom']) {
-    paintPanel(ctx, panels[name], photos[name], crops[name], width, height, name);
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height;
+  const bg=ctx.createLinearGradient(0,0,w*.15,h);
+  bg.addColorStop(0,'#431735');
+  bg.addColorStop(.48,'#25204b');
+  bg.addColorStop(1,'#101936');
+  ctx.fillStyle=bg;
+  ctx.fillRect(0,0,w,h);
+  const panels=panelLayout(w,h);
+  for(const name of ['main','mid','close']) {
+    drawPhoto(ctx,photos[name],panels[name],crops[name]);
   }
-  drawFooterSun(ctx, width, height, (panels.hero.y + panels.hero.h) * height);
-
-  const edge = Math.max(13, width * .018);
+  drawSun(ctx,w,h);
   ctx.save();
-  ctx.strokeStyle = 'rgba(255, 236, 218, .92)';
-  ctx.lineWidth = Math.max(2, width * .0022);
-  ctx.strokeRect(edge, edge, width - edge * 2, height - edge * 2);
-  ctx.strokeStyle = 'rgba(255, 95, 158, .75)';
-  ctx.lineWidth = Math.max(1, width * .001);
-  ctx.strokeRect(edge * 1.45, edge * 1.45, width - edge * 2.9, height - edge * 2.9);
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#fff3e8';
-  ctx.font = `900 ${Math.max(14, width * .018)}px system-ui, sans-serif`;
-  ctx.letterSpacing = `${Math.max(1, width * .002)}px`;
-  ctx.fillText('NEON HOURS', width * .052, height * .748);
-  ctx.textAlign = 'right';
-  ctx.fillStyle = '#8debf0';
-  ctx.font = `800 ${Math.max(10, width * .0105)}px system-ui, sans-serif`;
-  ctx.fillText('VICE CITY  /  VOL. 06', width * .948, height * .748);
-  ctx.setLineDash([width * .008, width * .007]);
-  ctx.strokeStyle = 'rgba(255, 221, 193, .42)';
-  ctx.lineWidth = Math.max(1, width * .001);
-  ctx.beginPath();
-  ctx.moveTo(width * .052, height * .768);
-  ctx.lineTo(width * .948, height * .768);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.strokeStyle='rgba(255,237,216,.9)';
+  ctx.lineWidth=Math.max(2,w*.002);
+  const edge=w*.018;
+  ctx.strokeRect(edge,edge,w-edge*2,h-edge*2);
+  ctx.fillStyle='#fff3df';
+  ctx.font=`900 ${Math.max(12,w*.017)}px Arial,sans-serif`;
+  ctx.letterSpacing=`${Math.max(1,w*.002)}px`;
+  ctx.fillText('NEON HOURS',w*.045,h*.925);
+  ctx.textAlign='right';
+  ctx.fillStyle='#70dde6';
+  ctx.font=`800 ${Math.max(10,w*.011)}px Arial,sans-serif`;
+  ctx.fillText('NIGHT SERIES · VOL. 07',w*.955,h*.925);
   ctx.restore();
-  drawTitle(ctx, caption, width, height);
-
+  drawTitle(ctx,caption,w,h);
   ctx.save();
-  ctx.font = `700 ${Math.max(9, width * .009)}px system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255, 237, 224, .74)';
-  ctx.textAlign = 'center';
-  ctx.letterSpacing = `${Math.max(1, width * .002)}px`;
-  ctx.fillText('ONE CITY  ·  THREE STORIES  ·  YOURS TO TELL', width / 2, height * .962);
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,244,226,.72)';
+  ctx.font=`700 ${Math.max(8,w*.008)}px Arial,sans-serif`;
+  ctx.fillText('THREE FRAMES · ONE NIGHT · YOUR STORY',w/2,h*.978);
   ctx.restore();
 }
