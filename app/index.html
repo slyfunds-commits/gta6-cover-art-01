@@ -1,89 +1,95 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#090817">
-    <title>Neon Hours — Poster Studio</title>
-    <link rel="stylesheet" href="./style.css">
-  </head>
-  <body>
-    <header class="topbar">
-      <a class="brand" href="./" aria-label="Neon Hours Poster Studio">
-        <span class="brand-mark">NH</span>
-        <span class="brand-type"><strong>NEON HOURS</strong><small>POSTER STUDIO</small></span>
-      </a>
-      <div class="privacy"><i></i> PRIVATE <span>·</span> ON YOUR DEVICE</div>
-    </header>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neon Hours — Poster Studio</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">NH</span>
+    <span class="brand-word">NEON HOURS <em>POSTER STUDIO</em></span>
+  </div>
+  <div class="privacy-badge">PRIVATE · ON YOUR DEVICE</div>
+</header>
 
-    <main class="workspace">
-      <aside class="controls">
-        <div class="intro">
-          <p class="eyebrow">MAKE THE NIGHT YOURS</p>
-          <h1>Own the<br><em>afterglow.</em></h1>
-          <p class="intro-copy">Three frames. One night. Your story.</p>
+<main>
+  <section class="intro">
+    <h1>Own the afterglow.</h1>
+    <p>Three frames. One night. Your story.</p>
+  </section>
+
+  <div class="studio">
+    <aside id="controls" aria-label="Poster controls">
+      <section class="control-block">
+        <h2><span class="step-number">01</span> Your scenes</h2>
+        <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Choose photos">
+          <strong>Choose photos</strong>
+          <span>Local images · never uploaded</span>
+          <input id="fileInput" type="file" accept="image/*" multiple hidden>
         </div>
-
-        <section class="control-section">
-          <h2><span>01</span> Your scenes</h2>
-          <label class="dropzone" for="photo-files">
-            <span class="upload-mark" aria-hidden="true">＋</span>
-            <span><strong>Choose photos</strong><small>Local images · never uploaded</small></span>
-            <input id="photo-files" type="file" accept="image/*" multiple>
-          </label>
-          <div id="photo-chips" class="photo-chips" aria-live="polite"></div>
-          <div class="scene-selects">
-            <label>MAIN<select id="photo-main"></select></label>
-            <label>MID<select id="photo-mid"></select></label>
-            <label>CLOSE<select id="photo-close"></select></label>
-          </div>
-        </section>
-
-        <section class="control-section">
-          <h2><span>02</span> Reframe</h2>
-          <div class="panel-tabs" role="group" aria-label="Panel to reframe">
-            <button type="button" class="active" data-panel="main">MAIN</button>
-            <button type="button" data-panel="mid">MID</button>
-            <button type="button" data-panel="close">CLOSE</button>
-          </div>
-          <label class="range-control"><span>ZOOM <output id="zoom-value">1.00×</output></span>
-            <input id="zoom" type="range" min="1" max="2.5" step="0.01" value="1">
-          </label>
-          <div class="range-pair">
-            <label class="range-control"><span>X OFFSET</span><input id="pan-x" type="range" min="-100" max="100" step="1" value="0"></label>
-            <label class="range-control"><span>Y OFFSET</span><input id="pan-y" type="range" min="-100" max="100" step="1" value="0"></label>
-          </div>
-        </section>
-
-        <section class="control-section statement-section">
-          <h2><span>03</span> Make a statement</h2>
-          <label class="sr-only" for="headline">Poster headline</label>
-          <input id="headline" class="headline-input" type="text" maxlength="32" value="MIDNIGHT HEAT">
-          <div class="presets">
-            <button type="button" data-caption="AFTER THE LAST CALL">AFTER THE LAST CALL</button>
-            <button type="button" data-caption="NEVER LOOK BACK">NEVER LOOK BACK</button>
-          </div>
-        </section>
-
-        <section class="control-section export-section">
-          <h2><span>04</span> Export</h2>
-          <label class="sr-only" for="format">Poster format</label>
-          <select id="format" class="format-select">
-            <option value="square">SQUARE · 1080×1080</option>
-            <option value="portrait">PORTRAIT · 1080×1350</option>
-            <option value="wide">WIDE · 1920×1080</option>
-          </select>
-          <button id="export" class="export-button" type="button">EXPORT PNG <span>↗</span></button>
-          <p id="export-status" class="status" role="status">Your photo stays on this device.</p>
-        </section>
-      </aside>
-
-      <section class="preview" aria-label="Poster preview">
-        <div class="preview-bar"><span><i></i> LIVE POSTER</span><output id="canvas-size">1080 × 1080</output></div>
-        <div class="canvas-frame"><canvas id="poster" width="1080" height="1080" aria-label="Neon Hours poster preview"></canvas></div>
-        <p class="preview-note">A little more night. A lot more you.</p>
+        <div id="photoChips" class="chips" aria-label="Loaded photos"></div>
+        <label class="field-label" for="select-main">MAIN</label>
+        <select id="select-main" class="panel-select"></select>
+        <label class="field-label" for="select-mid">MID</label>
+        <select id="select-mid" class="panel-select"></select>
+        <label class="field-label" for="select-close">CLOSE</label>
+        <select id="select-close" class="panel-select"></select>
       </section>
-    </main>
-    <script type="module" src="./src/main.js"></script>
-  </body>
+
+      <section class="control-block">
+        <h2><span class="step-number">02</span> Reframe</h2>
+        <div class="panel-tabs" role="tablist" aria-label="Panel to reframe">
+          <button type="button" class="panel-tab active" data-panel="main" role="tab">MAIN</button>
+          <button type="button" class="panel-tab" data-panel="mid" role="tab">MID</button>
+          <button type="button" class="panel-tab" data-panel="close" role="tab">CLOSE</button>
+        </div>
+        <label class="slider-label" for="zoomRange">ZOOM <span id="zoomValue" class="slider-value">1.00×</span></label>
+        <input id="zoomRange" type="range" min="1" max="2.5" step="0.01" value="1">
+        <label class="slider-label" for="xRange">X OFFSET <span id="xValue" class="slider-value">0</span></label>
+        <input id="xRange" type="range" min="-100" max="100" step="1" value="0">
+        <label class="slider-label" for="yRange">Y OFFSET <span id="yValue" class="slider-value">0</span></label>
+        <input id="yRange" type="range" min="-100" max="100" step="1" value="0">
+      </section>
+
+      <section class="control-block">
+        <h2><span class="step-number">03</span> Make a statement</h2>
+        <label class="field-label" for="headlineInput">HEADLINE</label>
+        <input id="headlineInput" type="text" maxlength="32" value="MIDNIGHT HEAT" autocomplete="off">
+        <div class="preset-row">
+          <button type="button" class="headline-preset" data-headline="AFTER THE LAST CALL">AFTER THE LAST CALL</button>
+          <button type="button" class="headline-preset" data-headline="NEVER LOOK BACK">NEVER LOOK BACK</button>
+        </div>
+      </section>
+
+      <section class="control-block">
+        <h2><span class="step-number">04</span> Export</h2>
+        <label class="field-label" for="formatSelect">FORMAT</label>
+        <select id="formatSelect" class="panel-select">
+          <option value="square">SQUARE · 1080×1080</option>
+          <option value="portrait">PORTRAIT · 1080×1350</option>
+          <option value="wide">WIDE · 1920×1080</option>
+        </select>
+        <button id="exportButton" type="button" class="export-button">EXPORT PNG</button>
+        <p id="statusLine" class="status-line">Your photo stays on this device.</p>
+      </section>
+    </aside>
+
+    <section class="preview" aria-label="Live poster preview">
+      <div id="previewBar" class="preview-bar">
+        <span>LIVE POSTER</span>
+        <span id="canvasSize">1080 × 1080</span>
+      </div>
+      <div class="poster-frame">
+        <canvas id="poster" width="1080" height="1080"></canvas>
+      </div>
+      <p id="previewNote" class="preview-note">A little more night. A lot more you.</p>
+    </section>
+  </div>
+</main>
+
+<script type="module" src="src/main.js"></script>
+</body>
 </html>

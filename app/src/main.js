@@ -1,191 +1,298 @@
-import { drawCover } from "./cover.js";
-import { announceReady, applyShotMode } from "./shots.js";
+// Neon Hours — poster studio editor.
+//
+// Owns the controls, the live preview canvas and the export. The poster
+// itself is drawn by cover.js; this file only decides what goes into it:
+// which photos sit in which panels, how each panel is cropped, what the
+// headline says, and which post size the poster is rendered at.
 
-const canvas = document.querySelector("#poster");
-const contextControls = {
-  files: document.querySelector("#photo-files"),
-  chips: document.querySelector("#photo-chips"),
-  headline: document.querySelector("#headline"),
-  format: document.querySelector("#format"),
-  size: document.querySelector("#canvas-size"),
-  zoom: document.querySelector("#zoom"),
-  zoomValue: document.querySelector("#zoom-value"),
-  panX: document.querySelector("#pan-x"),
-  panY: document.querySelector("#pan-y"),
-  status: document.querySelector("#export-status"),
-};
-const formats = {
-  square: [1080, 1080],
-  portrait: [1080, 1350],
-  wide: [1920, 1080],
-};
-const sceneSelects = {
-  main: document.querySelector("#photo-main"),
-  mid: document.querySelector("#photo-mid"),
-  close: document.querySelector("#photo-close"),
-};
-const scenes = [];
-const crops = {
-  main: { zoom: 1, x: 0, y: 0 },
-  mid: { zoom: 1, x: 0, y: 0 },
-  close: { zoom: 1, x: 0, y: 0 },
-};
-let activePanel = "main";
+import { drawPoster } from './cover.js';
 
-function renderChips() {
-  contextControls.chips.replaceChildren();
-  scenes.forEach((scene, index) => {
-    const chip = document.createElement("span");
-    chip.className = "photo-chip";
-    chip.textContent = scene.name;
-    chip.title = `Photo ${index + 1}: ${scene.name}`;
-    contextControls.chips.append(chip);
-  });
-}
+const FORMATS = {
+  square: { label: 'SQUARE · 1080×1080', width: 1080, height: 1080 },
+  portrait: { label: 'PORTRAIT · 1080×1350', width: 1080, height: 1350 },
+  wide: { label: 'WIDE · 1920×1080', width: 1920, height: 1080 },
+};
 
-function refreshSceneSelectors() {
-  Object.entries(sceneSelects).forEach(([panel, select]) => {
-    const previous = select.value;
-    select.replaceChildren();
-    scenes.forEach((scene, index) => {
-      const option = document.createElement("option");
-      option.value = String(index);
-      option.textContent = scene.name;
-      select.append(option);
-    });
-    if (scenes.length) {
-      const fallback = panel === "main" ? 0 : Math.min(1, scenes.length - 1);
-      select.value = scenes.some((_, index) => String(index) === previous) ? previous : String(fallback);
-    }
-  });
+const PANELS = ['main', 'mid', 'close'];
+
+const SAMPLE_FILES = [
+  { name: 'boulevard.jpg', src: 'samples/boulevard.jpg' },
+  { name: 'pier.jpg', src: 'samples/pier.jpg' },
+];
+
+const PRESETS = ['AFTER THE LAST CALL', 'NEVER LOOK BACK'];
+
+const state = {
+  photos: [], // { name, img } in load order
+  assign: { main: null, mid: null, close: null }, // photo index per panel, or null
+  crops: {
+    main: { zoom: 1, x: 0, y: 0 },
+    mid: { zoom: 1, x: 0, y: 0 },
+    close: { zoom: 1, x: 0, y: 0 },
+  },
+  activePanel: 'main',
+  headline: 'MIDNIGHT HEAT',
+  format: 'square',
+};
+
+const $ = (id) => document.getElementById(id);
+const canvas = $('poster');
+const sizeLabel = $('canvasSize');
+const statusLine = $('statusLine');
+
+function photoFor(panel) {
+  const index = state.assign[panel];
+  if (index === null || index === undefined) return null;
+  const entry = state.photos[index];
+  return entry ? entry.img : null;
 }
 
 function repaint() {
-  const [width, height] = formats[contextControls.format.value];
-  if (canvas.width !== width || canvas.height !== height) {
-    canvas.width = width;
-    canvas.height = height;
-  }
-  contextControls.size.value = `${width} × ${height}`;
-  const images = Object.fromEntries(Object.entries(sceneSelects).map(([panel, select]) => {
-    return [panel, scenes[Number(select.value)]?.image ?? null];
-  }));
-  drawCover(canvas, images, contextControls.headline.value, crops);
+  const format = FORMATS[state.format];
+  canvas.width = format.width;
+  canvas.height = format.height;
+  const ctx = canvas.getContext('2d');
+  drawPoster(ctx, format.width, format.height, {
+    photos: { main: photoFor('main'), mid: photoFor('mid'), close: photoFor('close') },
+    crops: state.crops,
+    headline: state.headline,
+  });
+  sizeLabel.textContent = `${format.width} × ${format.height}`;
 }
 
-function addLocalPhoto(file, url = URL.createObjectURL(file)) {
-  const image = new Image();
-  image.onload = () => {
-    scenes.push({ name: file.name, image, url });
-    renderChips();
-    refreshSceneSelectors();
-    repaint();
-  };
-  image.onerror = () => {
-    URL.revokeObjectURL(url);
-    contextControls.status.textContent = `Could not read ${file.name}. Choose a different image.`;
-  };
-  image.src = url;
-}
-
-function loadBundledPhoto(name) {
+function loadImage(src) {
   return new Promise((resolve) => {
-    const image = new Image();
-    image.onload = () => {
-      scenes.push({ name, image, url: image.src });
-      renderChips();
-      refreshSceneSelectors();
-      repaint();
-      resolve();
-    };
-    image.onerror = () => {
-      contextControls.status.textContent = `Bundled sample ${name} could not be loaded.`;
-      resolve();
-    };
-    image.src = `./samples/${name}`;
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
   });
 }
 
-contextControls.files.addEventListener("change", (event) => {
-  for (const file of event.target.files) {
-    if (file.type.startsWith("image/")) addLocalPhoto(file);
+function rebuildPhotoControls() {
+  // Chips showing every loaded photo by name.
+  const chips = $('photoChips');
+  chips.innerHTML = '';
+  state.photos.forEach((entry, index) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.textContent = entry.name;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'chip-remove';
+    remove.textContent = '×';
+    remove.setAttribute('aria-label', `Remove ${entry.name}`);
+    remove.addEventListener('click', () => {
+      state.photos.splice(index, 1);
+      for (const panel of PANELS) {
+        if (state.assign[panel] === index) state.assign[panel] = null;
+        else if (state.assign[panel] !== null && state.assign[panel] > index) state.assign[panel] -= 1;
+      }
+      rebuildPhotoControls();
+      repaint();
+    });
+    chip.appendChild(remove);
+    chips.appendChild(chip);
+  });
+
+  // One dropdown per panel, assigning a loaded photo to that panel.
+  for (const panel of PANELS) {
+    const select = $(`select-${panel}`);
+    const current = state.assign[panel];
+    select.innerHTML = '';
+    const none = document.createElement('option');
+    none.value = '';
+    none.textContent = 'No photo';
+    select.appendChild(none);
+    state.photos.forEach((entry, index) => {
+      const option = document.createElement('option');
+      option.value = String(index);
+      option.textContent = entry.name;
+      select.appendChild(option);
+    });
+    select.value = current === null || current === undefined ? '' : String(current);
   }
-  event.target.value = "";
-});
+}
 
-Object.entries(sceneSelects).forEach(([panel, select]) => {
-  select.addEventListener("change", () => {
-    if (panel === activePanel) repaint();
-    else repaint();
+function syncCropControls() {
+  const crop = state.crops[state.activePanel];
+  $('zoomRange').value = String(crop.zoom);
+  $('zoomValue').textContent = `${crop.zoom.toFixed(2)}×`;
+  $('xRange').value = String(crop.x);
+  $('xValue').textContent = crop.x > 0 ? `+${crop.x}` : `${crop.x}`;
+  $('yRange').value = String(crop.y);
+  $('yValue').textContent = crop.y > 0 ? `+${crop.y}` : `${crop.y}`;
+  document.querySelectorAll('.panel-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.panel === state.activePanel);
   });
-});
+}
 
-document.querySelectorAll(".panel-tabs button").forEach((button) => {
-  button.addEventListener("click", () => {
-    activePanel = button.dataset.panel;
-    document.querySelector(".panel-tabs .active")?.classList.remove("active");
-    button.classList.add("active");
-    const crop = crops[activePanel];
-    contextControls.zoom.value = String(crop.zoom);
-    contextControls.zoomValue.value = `${crop.zoom.toFixed(2)}×`;
-    contextControls.panX.value = String(crop.x);
-    contextControls.panY.value = String(crop.y);
+function markReady() {
+  // Two animation frames after the samples settle, so the harness only
+  // screenshots a fully painted poster.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.__shotReady = true;
+    });
   });
-});
+}
 
-contextControls.zoom.addEventListener("input", () => {
-  crops[activePanel].zoom = Number(contextControls.zoom.value);
-  contextControls.zoomValue.value = `${crops[activePanel].zoom.toFixed(2)}×`;
-  repaint();
-});
-contextControls.panX.addEventListener("input", () => {
-  crops[activePanel].x = Number(contextControls.panX.value);
-  repaint();
-});
-contextControls.panY.addEventListener("input", () => {
-  crops[activePanel].y = Number(contextControls.panY.value);
-  repaint();
-});
-
-contextControls.headline.addEventListener("input", repaint);
-contextControls.format.addEventListener("change", repaint);
-document.querySelectorAll("[data-caption]").forEach((button) => {
-  button.addEventListener("click", () => {
-    contextControls.headline.value = button.dataset.caption;
-    repaint();
+async function loadSamples(firstName) {
+  const ordered = [...SAMPLE_FILES].sort((a, b) => {
+    if (a.name === firstName) return -1;
+    if (b.name === firstName) return 1;
+    return 0;
   });
-});
+  for (const file of ordered) {
+    const img = await loadImage(file.src);
+    if (img) state.photos.push({ name: file.name, img });
+  }
+  if (state.photos.length > 0) {
+    state.assign.main = 0;
+    state.assign.mid = state.photos.length > 1 ? 1 : 0;
+    state.assign.close = state.photos.length > 1 ? 1 : 0;
+  }
+  rebuildPhotoControls();
+  repaint();
+  markReady();
+}
 
-document.querySelector("#export").addEventListener("click", () => {
+function addFiles(files) {
+  const images = [...files].filter((file) => file.type.startsWith('image/'));
+  if (images.length === 0) return;
+  let pending = images.length;
+  for (const file of images) {
+    const url = URL.createObjectURL(file);
+    loadImage(url).then((img) => {
+      if (img) {
+        state.photos.push({ name: file.name, img });
+        rebuildPhotoControls();
+        repaint();
+      } else {
+        URL.revokeObjectURL(url);
+      }
+      pending -= 1;
+      if (pending === 0) statusLine.textContent = `${images.length} photo${images.length > 1 ? 's' : ''} added. Your photo stays on this device.`;
+    });
+  }
+}
+
+function exportPng() {
+  const format = FORMATS[state.format];
+  const fileName = `neon-hours-${format.width}x${format.height}.png`;
   canvas.toBlob((blob) => {
     if (!blob) {
-      contextControls.status.textContent = "PNG export failed. Please try again.";
+      statusLine.textContent = 'Export failed in this browser. Try again.';
       return;
     }
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.download = `neon-hours-${canvas.width}x${canvas.height}.png`;
+    link.download = fileName;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
-    contextControls.status.textContent = `Exported neon-hours-${canvas.width}x${canvas.height}.png`;
-  }, "image/png");
-});
-
-const query = new URLSearchParams(location.search);
-if (query.has("caption")) contextControls.headline.value = query.get("caption").slice(0, 32);
-applyShotMode(query.get("shot"));
-if (query.get("shot") === "cover") {
-  const aspect = window.innerWidth / window.innerHeight;
-  contextControls.format.value = aspect >= 1.35 ? "wide" : window.innerHeight / window.innerWidth >= 1.2 ? "portrait" : "square";
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    statusLine.textContent = `Exported ${fileName}. Your photo stays on this device.`;
+  }, 'image/png');
 }
-repaint();
-const firstSample = query.get("photo") === "pier" ? "pier.jpg" : "boulevard.jpg";
-const secondSample = firstSample === "pier.jpg" ? "boulevard.jpg" : "pier.jpg";
-Promise.all([loadBundledPhoto(firstSample), loadBundledPhoto(secondSample)]).then(() => {
-  sceneSelects.main.value = "0";
-  sceneSelects.mid.value = scenes.length > 1 ? "1" : "0";
-  sceneSelects.close.value = scenes.length > 1 ? "1" : "0";
+
+function formatForViewport() {
+  const ratio = window.innerWidth / window.innerHeight;
+  if (ratio >= 1.35) return 'wide';
+  if (window.innerHeight / window.innerWidth >= 1.2) return 'portrait';
+  return 'square';
+}
+
+function init() {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('caption')) {
+    state.headline = params.get('caption').slice(0, 32);
+  }
+
+  const shot = params.get('shot');
+  if (shot === 'cover') {
+    document.body.classList.add('shot-cover');
+    state.format = formatForViewport();
+  }
+
+  const headlineInput = $('headlineInput');
+  headlineInput.value = state.headline;
+  headlineInput.setAttribute('maxlength', '32');
+  headlineInput.addEventListener('input', () => {
+    state.headline = headlineInput.value.slice(0, 32);
+    repaint();
+  });
+
+  document.querySelectorAll('.headline-preset').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.headline = button.dataset.headline;
+      headlineInput.value = state.headline;
+      repaint();
+    });
+  });
+
+  const dropzone = $('dropzone');
+  const fileInput = $('fileInput');
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    dropzone.classList.add('dragging');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragging'));
+  dropzone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    dropzone.classList.remove('dragging');
+    addFiles(event.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => {
+    addFiles(fileInput.files);
+    fileInput.value = '';
+  });
+
+  for (const panel of PANELS) {
+    $(`select-${panel}`).addEventListener('change', (event) => {
+      state.assign[panel] = event.target.value === '' ? null : Number(event.target.value);
+      repaint();
+    });
+  }
+
+  document.querySelectorAll('.panel-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      state.activePanel = tab.dataset.panel;
+      syncCropControls();
+    });
+  });
+
+  $('zoomRange').addEventListener('input', (event) => {
+    state.crops[state.activePanel].zoom = Number(event.target.value);
+    syncCropControls();
+    repaint();
+  });
+  $('xRange').addEventListener('input', (event) => {
+    state.crops[state.activePanel].x = Number(event.target.value);
+    syncCropControls();
+    repaint();
+  });
+  $('yRange').addEventListener('input', (event) => {
+    state.crops[state.activePanel].y = Number(event.target.value);
+    syncCropControls();
+    repaint();
+  });
+
+  const formatSelect = $('formatSelect');
+  formatSelect.value = state.format;
+  formatSelect.addEventListener('change', () => {
+    state.format = formatSelect.value;
+    repaint();
+  });
+
+  $('exportButton').addEventListener('click', exportPng);
+
+  syncCropControls();
   repaint();
-  announceReady();
-});
+  loadSamples(params.get('photo') === 'pier' ? 'pier.jpg' : 'boulevard.jpg');
+}
+
+init();
